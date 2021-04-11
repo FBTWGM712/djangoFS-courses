@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add a student to all bootcamp courses</title>
+    {% load static %}
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Add a New Course</h1>
+      </div>
+
+      {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+        <li {% if message.tags %} class="{{message.tags}}" {% endif %}>{{message}}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <form class="form-group" action="/add" method="post">
+        {% csrf_token %}
+        <div class="row justify-content-md-end">
+          <div class="col-3">
+            <p class="text-end">Name:</p>
+            <p class="text-end">Description:</p>
+          </div>
+          <div class="col-9">
+            <input class="form-control" type="text" name="course_name" id="course_name" />
+            <textarea class="form-control" name="description" id="description" cols="30" rows="5"></textarea>
+          </div>
+          <input class="btn btn-primary" type="submit" value="Add" />
+        </div>
+      </form>
+      <table class="table table-striped">
+        <thead>
+          <th scope="col">Course Name</th>
+          <th scope="col">Description</th>
+          <th scope="col">Date Added</th>
+          <th scope="col">Actions</th>
+        </thead>
+        {% for course in courses %}
+        <tr>
+          <td>{{course.course_name}}</td>
+          <td>{{course.description}}</td>
+          <td>{{course.created_at}}</td>
+          <td><a href="/remove/{{course.id}}">Remove</a></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </body>
+</html>

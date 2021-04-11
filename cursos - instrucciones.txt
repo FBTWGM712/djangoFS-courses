@@ -1,0 +1,143 @@
+Crear una app (tabla Course); asignatura: 5 char; descripcion: 15 char.
+1. descripcion uno a uno con la tabla Course
+2. comentario de accion para cada curso
+3. Mensaje de advertencia antes de eliminar
+
+PASOS A SEGUIR
+*********************************
+1. abrir entorno virtual
+    source my_environments/django3Env/Scripts/Activate
+2. empezar proyecto
+    django-admin startproject courses
+    cd courses
+3. configurar e iniciar aplicacion
+    mkdir -p apps/courses_app
+    python manage.py startapp courses_app ./apps/courses_app
+4. configurar settings.py en /courses >>> INSTALLED_APPS
+    'apps.courses_app',
+5. configurar urls.py:
+    - agregar include a import path
+    -agregar en urlpatterns:
+        path('',include('apps.courses_app.urls')),
+6. llamamos a urls en la app; crear urls.py en apps/courses_app:
+    from django.urls import path
+    from . import views
+
+    urlpatterns = [
+        path('', views.index),
+    ]
+7. llamamos a views.index; crear funcion en apps/courses_app/views.py
+    def index(request):
+        pass
+8. Ahora pasamos a apps/courses_app/model.py; crear modelo que contenga course name, description, y campos de fecha/hora:
+    from django.db import models
+    from datetime import date, datetime
+
+
+    # Create your models here.
+    class Courses(models.Model):
+        course_name = models.CharField(max_length=45)
+        description = models.TextField()
+        created_at = models.DateTimeField(auto_now_add=True)
+        updated_at = models.DateTimeField(auto_now=True)
+    ****podemos hacer migraciones ahora
+9. Creamos la carpeta templates y el html (index):
+    - html:5
+    -usar {% load static %} para css
+    - <form class="form-group" action="/add" method="post">
+    -usar {% csrf_token %} para forms
+
+
+10. para la tabla usaremos una funcion en views obteniendo datos de models.py
+    def index(request):
+        context = {
+        'courses' : Courses.objects.all()
+        }
+        return render(request, "index.html", context)
+    *** agregar from .models import *     /***
+11. en la tabla html podemos agregar {{class.model_field}}:
+    - usar {% for course in courses %}
+    - <td>{{course.course_name}}</td> ; repetir para description, created_at, course.id y remove
+    - no olvidar {% endfor %}
+12. la accion de "/add" en el formulario debe definirse en urls y luego en views.
+    <form class="form-group" action="/add" method="post">
+    - urls.py
+        path('add', views.add),
+    -views.py
+        def add (request):
+            pass
+        ** aqui usaremos el metodo objects.create; debe definir los parametros del modelo**
+        def add(request):
+            Courses.objects.create(course_name=request.POST['course_name'], description=request.POST['description'])
+            return redirect("/")        
+        ** importar redirect **
+
+13. la accion remove va a dirigir a otra pagina, por lo que volvemos a urls.py
+    - html:
+        <td><a href="/remove/{{course.id}}">Remove</a></td>
+    - urls.py
+        path('remove/<int:id>', views.remove),
+    -views.py
+        def remove(request, id):
+            context = {
+                'course' : Courses.objects.get(id=id)
+            }
+            return render(request, 'remove.html', context)
+        ** nos manda a la pagina remove.html **
+14. Crear pagina remove.html
+    - html:5
+    -usar {% load static %} para css
+    -En esta pagina necesitaremos una funcion para mostrar la informacion y otra para eliminar de la base de datos,
+    ademas del path
+        1. <h3>{{course.course_name}}</h3>
+        2. <a href="/delete/{{course.id}}">
+15. Completamos las urls y views
+    - urls.py
+        path('delete/<int:id>', views.delete)
+    -views.py
+        def delete(request, id):
+            Courses.objects.get(id=id).delete()
+            return redirect('/')
+
+16. Ahora agregamos las validaciones:
+    - en models.py
+        - agregar from __future__ import unicode_literals
+        - agregar antes de la otra clase: (importante agregar ANTES)
+        class CoursesManager(models.Manager):
+            def basic_validator(self, postData):
+                errors = {}
+                print(postData)
+                if len(postData['field']) < int:
+                    errors['field'] = "message"
+            **repetir para cada campo en la otra clase, ojo con los nombres de fields**
+            return errors
+        - agregar objects = CoursesManager() en la otra clase
+        -modificar en views la funcion que maneja el formulario
+            - from django.contrib import messages
+
+            - funcion:
+        errors = Courses.objects.basic_validator(request.POST)
+        if len(errors) > 0:
+            for key, value in errors.items():
+                messages.error(request, value)
+            return redirect('/')
+        else:
+            (mantener funcion anterior)
+        messages.success(request, "Course successfully created")
+        return redirect('/')
+        - por ultimo agregar arriba de form en el html correspondiente:
+            {% if messages %}
+            <ul class="messages">
+            {% for message in messages %}
+            <li {% if message.tags %} class="{{message.tags}}" {% endif %}>{{message}}</li>
+            {% endfor %}
+            </ul>
+            {% endif %}
+17. Si no se hizo antes, hacer migraciones. Es importante recordar que no es necesario hacer migraciones al agregar el
+manager en models.py porque no es una tabla de la base de datos
+    -python manage.py makemigrations
+    -python manage.py migrate
+    -python manage.py runserver
+
+
+
